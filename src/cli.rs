@@ -2,11 +2,11 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(
-    name = "lcommit",
+    name = "bcommit",
+    visible_alias = "boringcommit",
     version,
-    about = "Generate Git commit messages from staged changes with a local LLM, written in Rust"
+    about = "BoringCommit is a tool that uses LLMs to generate Git commit messages from staged changes. Written in Rust."
 )]
-
 
 pub struct Cli{
     #[command(subcommand)]

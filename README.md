@@ -1,7 +1,10 @@
-# LocalCommit
+# Boring Commit
 
-**LocalCommit** is a Rust-based tool that analyzes staged changes and generates concise, conventional commit messages using a locally running LLM. It is designed to be fast, private, lightweight.
+**Boring Commit** BoringCommit uses LLMs to generate concise Git commit messages from your staged changes.
 
+It can work with local models or API-based providers, so you can choose between keeping everything on your machine or using a hosted model.
+
+Written in Rust.
 
 https://doc.rust-lang.org/beta/std/process/struct.Command.html
 https://rust-cli.github.io/book/tutorial/cli-args.htmľ
