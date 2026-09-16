@@ -4,7 +4,7 @@
 
 ---
 
-**Boring Commit** BoringCommit uses LLMs to generate concise Git commit messages from your staged changes.
+**Boring Commit** uses LLMs to generate concise Git commit messages from your staged changes.
 
 It can work with local models or API-based providers, so you can choose between keeping everything on your machine or using a hosted model.
 
