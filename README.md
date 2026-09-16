@@ -1,4 +1,8 @@
-# Boring Commit
+<div align="center">
+  <img alt="boring commit logo" src="src/assets/logo.svg" width="60%" height="50%">
+</div>
+
+---
 
 **Boring Commit** BoringCommit uses LLMs to generate concise Git commit messages from your staged changes.
 
