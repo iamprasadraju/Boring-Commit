@@ -1,0 +1,22 @@
+# Boring Commit Config
+
+# Set this after choosing a model. (model = "provider/model")
+# model = "ollama/qwen2.5-coder:3b"
+
+[providers.ollama]
+base_url = "http://localhost:11434"
+
+[providers.openai]
+base_url = "https://api.openai.com/v1"
+
+[providers.groq]
+base_url = "https://api.groq.com/openai/v1"
+
+[providers.gemini]
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+[providers.openrouter]
+base_url = "https://openrouter.ai/api/v1"
+
+[providers.claude]
+base_url = "https://api.anthropic.com/v1"
