@@ -1,5 +1,5 @@
 <div align="center">
-  <img alt="boring commit logo" src="assets/logo.svg" width="60%" height="50%">
+  <img alt="boring commit logo" src="assets/logo.svg" width="80%" height="80%">
 </div>
 
 ---
