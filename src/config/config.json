@@ -1,0 +1,35 @@
+{
+  "provider": "",
+  "model": "",
+
+  "providers": {
+    "ollama": {
+      "endpoint": "http://localhost:11434"
+    },
+
+    "openai": {
+      "endpoint": "https://api.openai.com/v1",
+      "api_key": ""
+    },
+
+    "groq": {
+      "endpoint": "https://api.groq.com/openai/v1",
+      "api_key": ""
+    },
+
+    "gemini": {
+      "endpoint": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "api_key": ""
+    },
+
+    "openrouter": {
+      "endpoint": "https://openrouter.ai/api/v1",
+      "api_key": ""
+    },
+
+    "claude": {
+      "endpoint": "https://api.anthropic.com/v1",
+      "api_key": ""
+    }
+  }
+}

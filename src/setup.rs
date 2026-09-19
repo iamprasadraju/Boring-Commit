@@ -1,18 +1,17 @@
+use std::collections::HashMap;
+
 use dirs;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
-/*pub fn setup(){
+use serde::Deserialize;
 
-
-}
-*/
 
 // read this file at compile time and turn its contents into string
-const DEFAULT_CONFIG: &str = include_str!("../config/default.toml");
+const DEFAULT_CONFIG: &str = include_str!("config/config.json");
 
-pub fn ollama() {
+pub fn setup_ollama() {
     println!("Boring Commit setup => ");
     if cfg!(target_os = "windows") {
         Command::new("powershell")
@@ -28,6 +27,23 @@ pub fn ollama() {
     }
 }
 
+/*  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    setup and parsing config.json file
+    -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+#[derive(Debug, Deserialize)]
+pub struct Config {
+    pub provider: String,
+    pub model: String,
+    pub providers: HashMap<String, Provider>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Provider {
+    pub endpoint: String,
+    pub api_key: Option<String>,
+}
+
 pub fn config_file_path() -> PathBuf {
     //Linux: ~/.config/bcommit/config.toml
     // macOS: ~/Library/Application Support/bcommit/config.toml
@@ -39,29 +55,22 @@ pub fn config_file_path() -> PathBuf {
 
     fs::create_dir_all(&config_dir).expect("failed to create config directory");
 
-    config_dir.join("config.toml")
+    config_dir.join("config.json")
 }
 
-pub fn config_file_create() {
+pub fn setup_config() {
     let path = config_file_path();
 
-    if path.exists() {
-        return;
+    if !path.exists() {
+        fs::create_dir_all(path.parent().unwrap()).expect("Unable to create config directory");
+
+        fs::write(&path, DEFAULT_CONFIG).expect("Unable to write default config");
     }
-
-    fs::write(path, DEFAULT_CONFIG).expect("failed to create config file")
 }
 
-pub fn config_file_read() -> String {
+pub fn parse_config_file() -> Config {
     let path = config_file_path();
 
-    fs::read_to_string(path).expect("unable to read the file")
-}
-
-fn main() {
-    // let path = config_file_path();
-    config_file_create();
-
-    let con = config_file_read();
-    println!("{}", con);
+    let contents = fs::read_to_string(path).expect("Unable to read config file");
+    serde_json::from_str(&contents).expect("Invalid config file")
 }

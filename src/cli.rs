@@ -1,3 +1,6 @@
+mod setup;
+use setup::parse_config_file();
+
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -17,5 +20,15 @@ pub struct Cli{
 pub enum Commands {
     Setup,
 }
+
+
+pub fn config_model(){
+    let config = parse_config_file();
+
+    let providers: Vec<String> =
+    config.providers.keys().cloned().collect();
+}
+
+
 
 
