@@ -1,19 +1,211 @@
 mod cli;
 mod git;
+mod llm;
 mod setup;
 
-// use clap::Parser;
-// use cli::{Cli, Commands};
-// use git::staged_changes;
+use clap::{Parser, Subcommand};
+use setup::{parse_config_file, setup_config, setup_instructions};
+use cli::{
+    choose_model, config_provider, edit_instructions, instructions_path, remove_model,
+    reset_instructions, show_instructions,
+};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::time::Duration;
+use std::io::Write;
 
-use setup::config_file_path;
-use setup::parse_config_file;
-use setup::setup_config;
+#[derive(Parser)]
+#[command(
+    name = "bcommit",
+    visible_alias = "boringcommit",
+    version,
+    about = "BoringCommit — generate commit messages from staged changes using LLMs",
+    long_about = "BoringCommit — generate commit messages from staged changes using LLMs\n\nCommands:\n  bcommit                      Generate commit message from staged changes (default)\n  bcommit config               Configure provider and model\n  bcommit model                Choose active model\n  bcommit model remove         Remove a model\n  bcommit sysprompt            Show system prompt (editable)\n  bcommit sysprompt edit       Edit prompt in $EDITOR\n  bcommit sysprompt reset      Reset prompt to default\n  bcommit sysprompt path       Show prompt file path",
+    disable_help_subcommand = true,
+    help_template = "{about}\n\n{usage-heading} {usage}\n\nOptions:\n{options}"
+)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+
+    /// Skip confirmation and auto-commit
+    #[arg(long, short)]
+    yes: bool,
+}
+
+#[derive(Subcommand)]
+enum ModelAction {
+    /// Remove a saved model from a provider
+    Remove,
+}
+
+#[derive(Subcommand)]
+enum SyspromptAction {
+    /// Show current system prompt
+    Show,
+    /// Edit system prompt in $EDITOR
+    Edit,
+    /// Reset system prompt to default
+    Reset,
+    /// Show path to prompt file
+    Path,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Configure provider and model
+    Config,
+    /// Choose active model
+    Model {
+        #[command(subcommand)]
+        action: Option<ModelAction>,
+    },
+    /// Manage system prompt for commit generation (editable)
+    Sysprompt {
+        #[command(subcommand)]
+        action: Option<SyspromptAction>,
+    },
+}
+
+fn with_braille_spinner<T, F: FnOnce() -> T + Send + 'static>(msg: &str, f: F) -> T
+where
+    T: Send + 'static,
+{
+    // High-Quality Unicode Braille Dots — True Spinner
+    let braille = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    let cyan = "\x1b[36m";
+    let reset = "\x1b[0m";
+    let running = Arc::new(AtomicBool::new(true));
+    let running_clone = running.clone();
+    let msg_owned = msg.to_string();
+
+    let handle = std::thread::spawn(move || {
+        let mut i = 0usize;
+        while running_clone.load(Ordering::Relaxed) {
+            print!("\r{}{}{} {}", cyan, braille[i % braille.len()], reset, msg_owned);
+            let _ = std::io::stdout().flush();
+            std::thread::sleep(Duration::from_millis(80));
+            i += 1;
+        }
+    });
+
+    let result = f();
+
+    running.store(false, Ordering::Relaxed);
+    let _ = handle.join();
+    // clear spinner line
+    print!("\r{}\r", " ".repeat(msg.len() + 4));
+    let _ = std::io::stdout().flush();
+    result
+}
+
+fn run_generate(auto_yes: bool) {
+    let config = parse_config_file();
+
+    if config.provider.is_empty() || config.model.is_empty() {
+        eprintln!("No provider/model configured. Run `bcommit config` first.");
+        std::process::exit(1);
+    }
+
+    let provider_info = match config.providers.get(&config.provider) {
+        Some(p) => p.clone(),
+        None => {
+            eprintln!("Provider '{}' not found in config", config.provider);
+            std::process::exit(1);
+        }
+    };
+
+    // ensure staged changes exist
+    let diff = git::staged_changes();
+
+    // GitHub-style stats with colors
+    let stats = git::staged_stats();
+    git::print_staged_summary(&stats);
+
+    let spinner_msg = format!("Generating with {} / {} ...", config.provider, config.model);
+    let msg = with_braille_spinner(&spinner_msg, move || {
+        match llm::generate_commit_message(&diff, &config.provider, &provider_info, &config.model) {
+            Ok(m) => m,
+            Err(e) => {
+                // need to clear spinner before eprintln
+                eprintln!("\n{}", e);
+                std::process::exit(1);
+            }
+        }
+    });
+
+    println!("\n{}\n", msg);
+
+    if auto_yes {
+        match git::commit_with_message(&msg) {
+            Ok(_) => println!("Committed"),
+            Err(e) => eprintln!("{}", e),
+        }
+        return;
+    }
+
+    // interactive confirm / edit — Edit opens $EDITOR with multiline support
+    let choice = inquire::Select::new(
+        "What to do?",
+        vec!["Commit".to_string(), "Edit".to_string(), "Regenerate".to_string(), "Cancel".to_string()],
+    )
+    .with_help_message("Edit opens $EDITOR for multiline editing")
+    .prompt()
+    .unwrap_or_else(|_| "Cancel".to_string());
+
+    match choice.as_ref() {
+        "Commit" => {
+            if let Err(e) = git::commit_with_message(&msg) {
+                eprintln!("{}", e);
+            } else {
+                println!("Committed");
+            }
+        }
+        "Edit" => {
+            let edited = inquire::Editor::new("Edit commit message:")
+                .with_predefined_text(&msg)
+                .with_help_message("Save and close editor ($EDITOR) to commit — supports multiline")
+                .with_file_extension(".md")
+                .prompt()
+                .unwrap_or_else(|_| msg.clone());
+            let edited = edited.trim().to_string();
+            if edited.is_empty() {
+                eprintln!("Commit message empty — cancelled");
+                return;
+            }
+            if let Err(e) = git::commit_with_message(&edited) {
+                eprintln!("{}", e);
+            } else {
+                println!("Committed");
+            }
+        }
+        "Regenerate" => {
+            // simple recursion
+            run_generate(false);
+        }
+        _ => {
+            println!("Cancelled. Message was:\n{}", msg);
+        }
+    }
+}
 
 fn main() {
-    let path = config_file_path();
     setup_config();
+    setup_instructions();
 
-    let content = parse_config_file();
-    println!("{}", content.provider);
+    let cli = Cli::parse();
+
+    match cli.command {
+        Some(Commands::Config) => config_provider(),
+        Some(Commands::Model { action: Some(ModelAction::Remove) }) => remove_model(),
+        Some(Commands::Model { action: None }) => choose_model(),
+        Some(Commands::Sysprompt { action: Some(SyspromptAction::Show) }) => show_instructions(),
+        Some(Commands::Sysprompt { action: Some(SyspromptAction::Edit) }) => edit_instructions(),
+        Some(Commands::Sysprompt { action: Some(SyspromptAction::Reset) }) => reset_instructions(),
+        Some(Commands::Sysprompt { action: Some(SyspromptAction::Path) }) => instructions_path(),
+        Some(Commands::Sysprompt { action: None }) => show_instructions(),
+        None => run_generate(cli.yes),
+    }
 }
