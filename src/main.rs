@@ -16,6 +16,13 @@ use std::sync::{
 use std::time::Duration;
 use std::io::Write;
 
+const BRAND_BEFORE_HELP: &str = concat!(
+    "\x1b[97m╔╗ ╔═╗╦═╗╦╔╗╔╔═╗  ╔═╗╔═╗╔╦╗╔╦╗╦╔╦╗\x1b[0m\n",
+    "\x1b[97m╠╩╗║ ║╠╦╝║║║║║ ╦  ║  ║ ║║║║║║║║ ║ \x1b[0m\n",
+    "\x1b[97m╚═╝╚═╝╩╚═╩╝╚╝╚═╝  ╚═╝╚═╝╩ ╩╩ ╩╩ ╩\x1b[0m\n",
+    "\x1b[90m────────────────────────────────────────\x1b[0m"
+);
+
 #[derive(Parser)]
 #[command(
     name = "bcommit",
@@ -24,7 +31,8 @@ use std::io::Write;
     about = "BoringCommit — generate commit messages from staged changes using LLMs",
     long_about = "BoringCommit — generate commit messages from staged changes using LLMs\n\nCommands:\n  bcommit                      Generate commit message from staged changes (default)\n  bcommit config               Configure provider and model\n  bcommit model                Choose active model\n  bcommit model remove         Remove a model\n  bcommit sysprompt            Show system prompt (editable)\n  bcommit sysprompt edit       Edit prompt in $EDITOR\n  bcommit sysprompt reset      Reset prompt to default\n  bcommit sysprompt path       Show prompt file path",
     disable_help_subcommand = true,
-    help_template = "{about}\n\n{usage-heading} {usage}\n\nOptions:\n{options}"
+    before_help = BRAND_BEFORE_HELP,
+    help_template = "{before-help}\n{about}\n\n{usage-heading} {usage}\n\n{all-args}\n\n{after-help}"
 )]
 struct Cli {
     #[command(subcommand)]

@@ -9,11 +9,22 @@ use std::process::Command;
 use inquire::{Confirm, Password, PasswordDisplayMode, Select, Text, set_global_render_config};
 use inquire::ui::{Attributes, Color, RenderConfig, StyleSheet};
 
+pub fn print_brand() {
+    let w = "\x1b[97m";
+    let dim = "\x1b[90m";
+    let reset = "\x1b[0m";
+    println!();
+    println!("{}{}╔╗ ╔═╗╦═╗╦╔╗╔╔═╗  ╔═╗╔═╗╔╦╗╔╦╗╦╔╦╗{}", w, "", reset);
+    println!("{}{}╠╩╗║ ║╠╦╝║║║║║ ╦  ║  ║ ║║║║║║║║ ║ {}", w, "", reset);
+    println!("{}{}╚═╝╚═╝╩╚═╩╝╚╝╚═╝  ╚═╝╚═╝╩ ╩╩ ╩╩ ╩{}", w, "", reset);
+    println!("{}{}────────────────────────────────────────{}", dim, "", reset);
+}
+
 pub fn config_provider(){
     let render_config = RenderConfig::default_colored()
         .with_prompt_prefix(inquire::ui::Styled::new("?").with_fg(Color::LightGreen).with_attr(Attributes::BOLD))
-        .with_answered_prompt_prefix(inquire::ui::Styled::new(">").with_fg(Color::LightGreen).with_attr(Attributes::BOLD))
-        .with_highlighted_option_prefix(inquire::ui::Styled::new(">").with_fg(Color::LightCyan).with_attr(Attributes::BOLD))
+        .with_answered_prompt_prefix(inquire::ui::Styled::new("❯").with_fg(Color::LightGreen).with_attr(Attributes::BOLD))
+        .with_highlighted_option_prefix(inquire::ui::Styled::new("❯").with_fg(Color::LightCyan).with_attr(Attributes::BOLD))
         .with_text_input(StyleSheet::new().with_fg(Color::LightBlue))
         .with_default_value(StyleSheet::new().with_fg(Color::DarkGrey))
         .with_help_message(StyleSheet::new().with_fg(Color::LightCyan))
@@ -22,8 +33,7 @@ pub fn config_provider(){
         .with_selected_option(Some(StyleSheet::new().with_fg(Color::LightGreen).with_attr(Attributes::BOLD)));
 
     set_global_render_config(render_config);
-    
-    println!();
+    print_brand();
     println!("╔══════════════════════════════════════╗");
     println!("║      BoringCommit Config             ║");
     println!("╚══════════════════════════════════════╝");
@@ -227,8 +237,8 @@ pub fn config_provider(){
 pub fn choose_model() {
     let render_config = RenderConfig::default_colored()
         .with_prompt_prefix(inquire::ui::Styled::new("?").with_fg(Color::LightGreen).with_attr(Attributes::BOLD))
-        .with_answered_prompt_prefix(inquire::ui::Styled::new(">").with_fg(Color::LightGreen).with_attr(Attributes::BOLD))
-        .with_highlighted_option_prefix(inquire::ui::Styled::new(">").with_fg(Color::LightCyan).with_attr(Attributes::BOLD))
+        .with_answered_prompt_prefix(inquire::ui::Styled::new("❯").with_fg(Color::LightGreen).with_attr(Attributes::BOLD))
+        .with_highlighted_option_prefix(inquire::ui::Styled::new("❯").with_fg(Color::LightCyan).with_attr(Attributes::BOLD))
         .with_text_input(StyleSheet::new().with_fg(Color::LightBlue))
         .with_default_value(StyleSheet::new().with_fg(Color::DarkGrey))
         .with_help_message(StyleSheet::new().with_fg(Color::LightCyan))
@@ -237,6 +247,7 @@ pub fn choose_model() {
         .with_selected_option(Some(StyleSheet::new().with_fg(Color::LightGreen).with_attr(Attributes::BOLD)));
 
     set_global_render_config(render_config);
+    print_brand();
 
     let mut config = parse_config_file();
 
@@ -294,7 +305,7 @@ pub fn choose_model() {
             0
         };
         let model = Select::new("Select Ollama Model:", ollama_models.clone())
-            .with_help_message("Models from `ollama list` — > to select")
+            .with_help_message("Models from `ollama list` — ❯ to select")
             .with_starting_cursor(model_start)
             .prompt()
             .unwrap();
@@ -329,8 +340,8 @@ pub fn choose_model() {
 pub fn remove_model() {
     let render_config = RenderConfig::default_colored()
         .with_prompt_prefix(inquire::ui::Styled::new("?").with_fg(Color::LightGreen).with_attr(Attributes::BOLD))
-        .with_answered_prompt_prefix(inquire::ui::Styled::new(">").with_fg(Color::LightGreen).with_attr(Attributes::BOLD))
-        .with_highlighted_option_prefix(inquire::ui::Styled::new(">").with_fg(Color::LightCyan).with_attr(Attributes::BOLD))
+        .with_answered_prompt_prefix(inquire::ui::Styled::new("❯").with_fg(Color::LightGreen).with_attr(Attributes::BOLD))
+        .with_highlighted_option_prefix(inquire::ui::Styled::new("❯").with_fg(Color::LightCyan).with_attr(Attributes::BOLD))
         .with_text_input(StyleSheet::new().with_fg(Color::LightBlue))
         .with_default_value(StyleSheet::new().with_fg(Color::DarkGrey))
         .with_help_message(StyleSheet::new().with_fg(Color::LightCyan))
@@ -339,8 +350,8 @@ pub fn remove_model() {
         .with_selected_option(Some(StyleSheet::new().with_fg(Color::LightGreen).with_attr(Attributes::BOLD)));
 
     set_global_render_config(render_config);
+    print_brand();
 
-    println!();
     println!("╔══════════════════════════════════════╗");
     println!("║      Remove Model                    ║");
     println!("╚══════════════════════════════════════╝");
@@ -383,7 +394,7 @@ pub fn remove_model() {
     }
 
     let model = Select::new("Select Model to Remove:", provider_info.models.clone())
-        .with_help_message("> to select, Enter to confirm")
+        .with_help_message("❯ to select, Enter to confirm")
         .prompt()
         .unwrap();
 
