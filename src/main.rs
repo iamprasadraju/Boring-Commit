@@ -164,12 +164,26 @@ fn run_generate(auto_yes: bool) {
             }
         }
         "Edit" => {
-            let edited = inquire::Editor::new("Edit commit message:")
+            let edited = match inquire::Editor::new("Edit commit message:")
                 .with_predefined_text(&msg)
                 .with_help_message("Save and close editor ($EDITOR) to commit — supports multiline")
                 .with_file_extension(".md")
                 .prompt()
-                .unwrap_or_else(|_| msg.clone());
+            {
+                Ok(s) => s,
+                Err(inquire::error::InquireError::OperationCanceled) => {
+                    println!("Edit cancelled");
+                    return;
+                }
+                Err(inquire::error::InquireError::OperationInterrupted) => {
+                    println!("Edit interrupted — cancelled");
+                    return;
+                }
+                Err(e) => {
+                    eprintln!("Editor error: {}", e);
+                    return;
+                }
+            };
             let edited = edited.trim().to_string();
             if edited.is_empty() {
                 eprintln!("Commit message empty — cancelled");
