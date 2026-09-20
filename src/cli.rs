@@ -249,6 +249,10 @@ pub fn choose_model() {
 
     set_global_render_config(render_config);
     print_brand();
+    println!("╔══════════════════════════════════════╗");
+    println!("║      Choose Model                    ║");
+    println!("╚══════════════════════════════════════╝");
+    println!();
 
     let mut config = parse_config_file();
 
