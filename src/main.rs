@@ -1,3 +1,4 @@
+mod ui;
 mod cli;
 mod git;
 mod llm;
@@ -113,14 +114,14 @@ fn run_generate(auto_yes: bool) {
     let config = parse_config_file();
 
     if config.provider.is_empty() || config.model.is_empty() {
-        eprintln!("No provider/model configured. Run `bcommit config` first.");
+        ui::error("No provider/model configured. Run `bcommit config` first.");
         std::process::exit(1);
     }
 
     let provider_info = match config.providers.get(&config.provider) {
         Some(p) => p.clone(),
         None => {
-            eprintln!("Provider '{}' not found in config", config.provider);
+            ui::error(&format!("Provider '{}' not found in config", config.provider));
             std::process::exit(1);
         }
     };
@@ -138,7 +139,7 @@ fn run_generate(auto_yes: bool) {
             Ok(m) => m,
             Err(e) => {
                 // need to clear spinner before eprintln
-                eprintln!("\n{}", e);
+                ui::error(&format!("\n{}", e));
                 std::process::exit(1);
             }
         }
@@ -148,8 +149,8 @@ fn run_generate(auto_yes: bool) {
 
     if auto_yes {
         match git::commit_with_message(&msg) {
-            Ok(_) => println!("Committed"),
-            Err(e) => eprintln!("{}", e),
+            Ok(_) => ui::success("Committed"),
+            Err(e) => ui::error(&e),
         }
         return;
     }
@@ -166,9 +167,9 @@ fn run_generate(auto_yes: bool) {
     match choice.as_ref() {
         "Commit" => {
             if let Err(e) = git::commit_with_message(&msg) {
-                eprintln!("{}", e);
+                ui::error(&e);
             } else {
-                println!("Committed");
+                ui::success("Committed");
             }
         }
         "Edit" => {
@@ -188,19 +189,19 @@ fn run_generate(auto_yes: bool) {
                     return;
                 }
                 Err(e) => {
-                    eprintln!("Editor error: {}", e);
+                    ui::error(&format!("Editor error: {}", e));
                     return;
                 }
             };
             let edited = edited.trim().to_string();
             if edited.is_empty() {
-                eprintln!("Commit message empty — cancelled");
+                ui::error("Commit message empty — cancelled");
                 return;
             }
             if let Err(e) = git::commit_with_message(&edited) {
-                eprintln!("{}", e);
+                ui::error(&e);
             } else {
-                println!("Committed");
+                ui::success("Committed");
             }
         }
         "Regenerate" => {

@@ -1,4 +1,5 @@
 use crate::setup::{read_instructions, Provider};
+use crate::ui;
 use serde_json::json;
 
 fn extract_model_names(body: &serde_json::Value) -> Vec<String> {
@@ -81,9 +82,9 @@ pub fn auth_provider(
     // Claude / providers without /models listing: 404 means we can't verify model list
     if response.status().as_u16() == 404 {
         if verify_model {
-            println!("{} authentication successful (model '{}' not verified via API - listing not supported)", provider_name, model);
+            ui::success(&format!("{} authentication successful (model '{}' not verified via API - listing not supported)", provider_name, model));
         } else {
-            println!("{} authentication successful", provider_name);
+            ui::success(&format!("{} authentication successful", provider_name));
         }
         return Ok(());
     }
@@ -118,12 +119,12 @@ pub fn auth_provider(
                 ));
             }
         } else {
-            println!("{}: could not list models, skipping model verification for '{}'", provider_name, model);
+            ui::warn(&format!("{}: could not list models, skipping model verification for '{}'", provider_name, model));
         }
 
-        println!("{} authentication successful with model '{}'", provider_name, model);
+        ui::success(&format!("{} authentication successful with model '{}'", provider_name, model));
     } else {
-        println!("{} authentication successful", provider_name);
+        ui::success(&format!("{} authentication successful", provider_name));
     }
     Ok(())
 }

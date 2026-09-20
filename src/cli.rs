@@ -4,6 +4,7 @@ use crate::setup::{
     ollama_pull_model, parse_config_file, read_instructions,
     reset_instructions as setup_reset_instructions, save_config, setup_instructions, setup_ollama,
 };
+use crate::ui;
 use std::process::Command;
 
 use inquire::{Confirm, Password, PasswordDisplayMode, Select, Text, set_global_render_config};
@@ -69,20 +70,20 @@ pub fn config_provider(){
             if do_install {
                 setup_ollama();
                 if !is_ollama_installed() {
-                    eprintln!("Ollama installation failed");
+                    ui::error("Ollama installation failed");
                     std::process::exit(1);
                 }
-                println!("Ollama installed successfully");
+                ui::success("Ollama installed successfully");
             } else {
-                eprintln!("Ollama is required for local provider");
+                ui::error("Ollama is required for local provider");
                 std::process::exit(1);
             }
         } else {
-            println!("Ollama is installed");
+            ui::success("Ollama is installed");
         }
 
         if !is_ollama_running(&provider_info.endpoint) {
-            eprintln!("Warning: Ollama is not running at {} — run `ollama serve`", provider_info.endpoint);
+            ui::warn(&format!("Ollama is not running at {} — run `ollama serve`", provider_info.endpoint));
             // continue anyway, model check will fail if not running
         }
 
@@ -93,7 +94,7 @@ pub fn config_provider(){
         match auth_provider(&provider, &provider_info, "", "") {
             Ok(_) => {}
             Err(e) => {
-                eprintln!("{}", e);
+                ui::error(&e);
                 std::process::exit(1);
             }
         }
@@ -125,7 +126,7 @@ pub fn config_provider(){
         match auth_provider(&provider, &provider_info, &api_key, "") {
             Ok(_) => {}
             Err(e) => {
-                eprintln!("{}", e);
+                ui::error(&e);
                 std::process::exit(1);
             }
         }
@@ -168,7 +169,7 @@ pub fn config_provider(){
         };
 
         if chosen.trim().is_empty() {
-            eprintln!("Model is required");
+            ui::error("Model is required");
             std::process::exit(1);
         }
 
@@ -181,15 +182,15 @@ pub fn config_provider(){
                 .unwrap();
             if do_pull {
                 if let Err(e) = ollama_pull_model(&chosen) {
-                    eprintln!("{}", e);
+                    ui::error(&e);
                     std::process::exit(1);
                 }
-                println!("Pulled '{}'", chosen);
+                ui::success(&format!("Pulled '{}'", chosen));
             } else {
-                println!("Warning: Skipping pull — model will be pulled on first use");
+                ui::warn("Skipping pull — model will be pulled on first use");
             }
         } else {
-            println!("Model '{}' already installed", chosen);
+            ui::success(&format!("Model '{}' already installed", chosen));
         }
 
         chosen
@@ -199,7 +200,7 @@ pub fn config_provider(){
             .prompt()
             .unwrap();
         if m.trim().is_empty() {
-            eprintln!("Model is required");
+            ui::error("Model is required");
             std::process::exit(1);
         }
         m
@@ -210,7 +211,7 @@ pub fn config_provider(){
         match auth_provider(&provider, &provider_info, &api_key, &model) {
             Ok(_) => {}
             Err(e) => {
-                eprintln!("{}", e);
+                ui::error(&e);
                 std::process::exit(1);
             }
         }
@@ -228,9 +229,9 @@ pub fn config_provider(){
 
     save_config(&config);
     if provider == "ollama" {
-        println!("Ollama model '{}' set as active (managed via `ollama list`)", config.model);
+        ui::success(&format!("Ollama model '{}' set as active (managed via `ollama list`)", config.model));
     } else {
-        println!("Configuration complete!");
+        ui::success("Configuration complete!");
     }
 }
 
@@ -262,7 +263,7 @@ pub fn choose_model() {
     let providers: Vec<String> = config.providers.keys().cloned().collect();
 
     if providers.is_empty() {
-        eprintln!("No providers configured");
+        ui::error("No providers configured");
         std::process::exit(1);
     }
 
@@ -288,7 +289,7 @@ pub fn choose_model() {
         if do_install {
             setup_ollama();
         } else {
-            eprintln!("Ollama is required for local provider");
+            ui::error("Ollama is required for local provider");
             std::process::exit(1);
         }
     }
@@ -296,7 +297,7 @@ pub fn choose_model() {
     if provider == "ollama" {
         let ollama_models = get_ollama_models(&provider_info.endpoint);
         if ollama_models.is_empty() {
-            eprintln!("No models found via `ollama list`. Pull one with `ollama pull <model>` or run `bcommit config`");
+            ui::error("No models found via `ollama list`. Pull one with `ollama pull <model>` or run `bcommit config`");
             std::process::exit(1);
         }
         let model_start = if config.provider == provider {
@@ -313,7 +314,7 @@ pub fn choose_model() {
         config.model = model.clone();
     } else {
         if provider_info.models.is_empty() {
-            eprintln!("No saved models for '{}'. Run `bcommit config` to add one.", provider);
+            ui::error(&format!("No saved models for '{}'. Run `bcommit config` to add one.", provider));
             std::process::exit(1);
         }
 
@@ -333,8 +334,8 @@ pub fn choose_model() {
     }
 
     save_config(&config);
-    println!("Active model: {} / {}", config.provider, config.model);
-    println!("Active model set to '{}' for provider '{}'", config.model, provider);
+    ui::success(&format!("Active model: {} / {}", config.provider, config.model));
+    ui::success(&format!("Active model set to '{}' for provider '{}'", config.model, provider));
 }
 
 pub fn remove_model() {
@@ -361,7 +362,7 @@ pub fn remove_model() {
 
     let providers: Vec<String> = config.providers.keys().cloned().collect();
     if providers.is_empty() {
-        eprintln!("No providers configured");
+        ui::error("No providers configured");
         std::process::exit(1);
     }
 
@@ -378,7 +379,7 @@ pub fn remove_model() {
         .unwrap();
 
     if provider == "ollama" {
-        eprintln!("Remove disabled for ollama — models are managed via `ollama rm <model>` (use `ollama list` to view)");
+        ui::error("Remove disabled for ollama — models are managed via `ollama rm <model>` (use `ollama list` to view)");
         std::process::exit(1);
     }
 
@@ -389,7 +390,7 @@ pub fn remove_model() {
         .clone();
 
     if provider_info.models.is_empty() {
-        eprintln!("No saved models for '{}'", provider);
+        ui::error(&format!("No saved models for '{}'", provider));
         std::process::exit(1);
     }
 
@@ -417,11 +418,11 @@ pub fn remove_model() {
     if config.provider == provider && config.model == model {
         config.model = String::new();
         // keep provider selected but model cleared; user can pick another via `bcommit model`
-        println!("Warning: Active model was removed — active model cleared");
+        ui::warn("Active model was removed — active model cleared");
     }
 
     save_config(&config);
-    println!("Removed '{}' from '{}'", model, provider);
+    ui::success(&format!("Removed '{}' from '{}'", model, provider));
 }
 
 pub fn show_instructions() {
@@ -453,14 +454,14 @@ pub fn edit_instructions() {
     let status = Command::new(&editor).arg(&path).status();
     match status {
         Ok(s) if s.success() => {
-            println!("Instructions saved to {}", path.display());
+            ui::success(&format!("Instructions saved to {}", path.display()));
             let content = read_instructions();
             if content.trim().is_empty() {
-                eprintln!("Warning: instructions file is empty — LLM will use empty system prompt");
+                ui::warn("instructions file is empty — LLM will use empty system prompt");
             }
         }
-        Ok(s) => eprintln!("Editor exited with status {:?}", s),
-        Err(e) => eprintln!("Failed to launch editor '{}': {}. Edit manually: {}", editor, e, path.display()),
+        Ok(s) => ui::error(&format!("Editor exited with status {:?}", s)),
+        Err(e) => ui::error(&format!("Failed to launch editor '{}': {}. Edit manually: {}", editor, e, path.display())),
     }
 }
 
@@ -475,7 +476,7 @@ pub fn reset_instructions() {
         return;
     }
     setup_reset_instructions();
-    println!("Instructions reset to default at {}", instructions_file_path().display());
+    ui::success(&format!("Instructions reset to default at {}", instructions_file_path().display()));
     let content = read_instructions();
     println!("────────────────────────────────────────");
     println!("{}", content);

@@ -1,4 +1,5 @@
 use std::process::Command;
+use crate::ui;
 
 pub fn staged_changes() -> String{
     let output = Command::new("git")
@@ -7,7 +8,7 @@ pub fn staged_changes() -> String{
         .expect("Git command failed");
 
     if output.stdout.is_empty(){
-        println!("No staged changes. Stage files with `git add` first.");
+        ui::warn("No staged changes. Stage files with `git add` first.");
         std::process::exit(0); 
     }
 
