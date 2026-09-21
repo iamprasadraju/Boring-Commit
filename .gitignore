@@ -1,3 +1,4 @@
 /target
-Cargo.lock
+# NOTE: Cargo.lock is intentionally TRACKED — bcommit ships prebuilt
+# binaries, and reproducible --locked CI builds need it.
 .DS_Store
