@@ -134,13 +134,14 @@
       <div class="ref-card reveal">
         <div class="ref-meta"><p class="card-kicker">Quickstart</p>
           <h3>From zero to first commit</h3>
-          <p class="muted small">Local model first. Five minutes, then it disappears into your workflow.</p><button class="copy-btn" type="button" aria-label="Copy quickstart commands"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.5"/></svg></button></div>
-<pre><code># local model (recommended)
-ollama serve
-ollama pull qwen2.5-coder:3b
+          <p class="muted small">One line to install. Two minutes, then it disappears into your workflow.</p><button class="copy-btn" type="button" aria-label="Copy quickstart commands"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.5"/></svg></button></div>
+<pre><code># install (macOS / Linux)
+curl -fsSL https://raw.githubusercontent.com/iamprasadraju/Boring-Commit/main/scripts/install.sh | sh
 
-# build and configure
-cargo build --release
+# install (Windows PowerShell)
+irm https://raw.githubusercontent.com/iamprasadraju/Boring-Commit/main/scripts/install.ps1 | iex
+
+# configure
 bcommit config
 
 # daily use
