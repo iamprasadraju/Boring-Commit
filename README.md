@@ -12,6 +12,13 @@
 from your staged changes. It works with local models or API-based providers, so
 you can keep everything on your machine or use a hosted model. Written in Rust.
 
+<div align="center">
+  <br>
+  <img src="docs/assets/demo.gif" width="80%" height="80%">
+ 
+</div>
+ <br>
+
 ```sh
 $ git add -p
 $ bcommit
