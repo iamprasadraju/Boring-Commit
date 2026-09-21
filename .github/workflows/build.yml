@@ -2,17 +2,13 @@ name: build
 
 on:
   push:
-    branches: [main]
+    # Builds run only on version tags. Branch pushes and PRs
+    # never trigger this workflow.
     tags: ["v*"]
-    # Docs-only changes don't need a 3-OS rebuild. (paths filters
-    # don't apply to tags, so releases always build.)
-    paths-ignore: ["docs/**", "README.md", ".gitignore", "LICENSE"]
-  pull_request:
-    paths-ignore: ["docs/**", "README.md", ".gitignore", "LICENSE"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
