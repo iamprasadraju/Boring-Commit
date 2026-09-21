@@ -1,0 +1,168 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive: bcommit-macos-aarch64.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: bcommit-windows-x86_64.zip
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: bcommit-linux-x86_64.tar.gz
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux TLS build deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libssl-dev
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build release
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Smoke test binary
+        shell: bash
+        run: |
+          BIN="target/${{ matrix.target }}/release/bcommit"
+          if [ "${{ runner.os }}" = "Windows" ]; then BIN="$BIN.exe"; fi
+          "$BIN" --help > /dev/null
+          "$BIN" --version
+
+      - name: Package artifact
+        shell: bash
+        run: |
+          STAGE="dist"
+          mkdir -p "$STAGE"
+          BIN="target/${{ matrix.target }}/release/bcommit"
+          if [ "${{ runner.os }}" = "Windows" ]; then BIN="$BIN.exe"; fi
+          cp "$BIN" "$STAGE/"
+          cp README.md LICENSE "$STAGE/" 2>/dev/null || true
+          cd "$STAGE"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a "${{ matrix.archive }}" bcommit.exe README.md LICENSE > /dev/null
+          else
+            tar -czf "${{ matrix.archive }}" bcommit README.md LICENSE
+          fi
+          (sha256sum "${{ matrix.archive }}" || shasum -a 256 "${{ matrix.archive }}") > "${{ matrix.archive }}.sha256"
+          ls -la
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive }}
+          path: |
+            dist/${{ matrix.archive }}
+            dist/${{ matrix.archive }}.sha256
+          if-no-files-found: error
+
+  # Install-script smoke tests: install the just-built binary like a user would.
+  test-install-sh:
+    name: test install.sh (${{ matrix.os }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            bin: bcommit
+          - os: ubuntu-latest
+            bin: bcommit
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Serve artifacts locally
+        shell: bash
+        run: |
+          cd artifacts
+          python3 -m http.server 8899 &
+          echo $! > /tmp/artifact-server.pid
+          sleep 1
+          ls -la
+
+      - name: Run install.sh against local artifacts
+        shell: bash
+        env:
+          BCOMMIT_BASE_URL: http://localhost:8899
+          BCOMMIT_INSTALL_DIR: ${{ runner.temp }}/bcommit-test
+          BCOMMIT_NO_SUDO: "1"
+        run: |
+          sh scripts/install.sh
+          "${{ runner.temp }}/bcommit-test/bin/bcommit" --version
+
+      - name: Stop artifact server
+        if: always()
+        shell: bash
+        run: kill $(cat /tmp/artifact-server.pid) || true
+
+  release:
+    name: publish release
+    needs: [build, test-install-sh]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches Cargo.toml version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          echo "tag=$TAG cargo=$VERSION"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag v$TAG does not match Cargo.toml version $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
