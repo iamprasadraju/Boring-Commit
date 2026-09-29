@@ -61,7 +61,7 @@ main{position:relative;max-width:1120px;margin:0 auto;padding:128px 32px 30px}
 .hero-title mark{background:linear-gradient(transparent 62%,var(--mark) 62%);padding:0 .1em;color:inherit}
 /* OS badge pinned to the S corner, cycles every 3s */
 .s-wrap{position:relative;display:inline-block}
-.os-badge{position:absolute;left:-14px;top:-28px;width:48px;height:48px;color:var(--ink)}
+.os-badge{position:absolute;left:-26px;top:-40px;width:48px;height:48px;color:var(--ink)}
 .os-badge svg{width:42px;height:42px}
 .os-badge .os{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transform:scale(.55) rotate(-14deg);transition:opacity .6s var(--ease),transform .6s var(--ease)}
 .os-badge .os.active{opacity:1;transform:none}
@@ -120,16 +120,21 @@ main{position:relative;max-width:1120px;margin:0 auto;padding:128px 32px 30px}
 .warning span{color:var(--muted)}
 
 /* DOCS — terminal card grid, side by side */
-.ref-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.ref-card{background:var(--term);border:1px solid #2a2825;border-radius:16px;padding:24px;min-width:0;box-shadow:0 24px 70px rgba(0,0,0,.18)}
-.ref-meta{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;margin-bottom:14px}
+.ref-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;min-width:0;align-items:stretch}
+.ref-card{background:var(--term);border:1px solid #2a2825;border-radius:16px;padding:24px;min-width:0;max-width:100%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.18)}
+.ref-meta{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;margin-bottom:14px;min-width:0}
 .ref-meta .card-kicker{grid-column:1;grid-row:1;margin:0}
 .ref-meta h3{grid-column:1;grid-row:2;font-size:19px;margin:0;color:#fafaf9}
 .ref-meta p:not(.card-kicker){grid-column:1;grid-row:3;margin:0;font-size:13px;color:#a8a29e}
 .ref-meta .copy-btn{grid-column:2;grid-row:1;background:#292524;border-color:#44403c;color:#a8a29e}
 .ref-meta .copy-btn:hover{color:#fff;border-color:#6b6b6b}
-.ref-card pre{margin:0;border:0;background:none;padding:2px 0 0;min-width:0}
-.ref-card code{font-size:12.2px}
+.ref-card pre{margin:0;border:0;background:none;background-color:transparent;padding:2px 0 10px;min-width:0;min-height:0;max-width:100%;flex:1 1 auto;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#57534e transparent;line-height:1.7;align-content:start}
+.ref-card pre::-webkit-scrollbar{height:6px}
+.ref-card pre::-webkit-scrollbar-track{background:transparent}
+.ref-card pre::-webkit-scrollbar-thumb{background-color:#57534e;border-radius:999px}
+.ref-card pre::-webkit-scrollbar-thumb:hover{background-color:#78716c}
+.ref-card pre::-webkit-scrollbar-corner{background:transparent}
+.ref-card code{font-size:12.2px;white-space:pre;word-break:normal;overflow-wrap:normal}
 .copy-btn{flex:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--canvas);cursor:pointer;display:grid;place-items:center;color:var(--muted);transition:border-color .18s var(--ease),color .18s var(--ease)}
 .copy-btn:hover{color:var(--ink);border-color:#c9c9c9}
 
@@ -158,13 +163,17 @@ main{position:relative;max-width:1120px;margin:0 auto;padding:128px 32px 30px}
 footer{text-align:center;padding:26px 0 0;overflow:hidden;border-top:1px solid var(--line);margin-top:20px}
 .foot-marks{display:flex;justify-content:center;gap:22px;font-size:24px;color:var(--muted);user-select:none}
 .foot-word{font-weight:800;font-size:clamp(64px,14vw,200px);letter-spacing:-.05em;line-height:.95;white-space:nowrap;color:transparent;-webkit-text-stroke:1px #d4d4d4;user-select:none;margin-top:6px}
-/* EDGE SCROLLERS — vertical marquees filling the fullscreen side space */
-.edge-marquee{position:fixed;top:0;bottom:0;width:76px;display:none;overflow:hidden;z-index:1;pointer-events:none;user-select:none}
+/* EDGE SCROLLERS — vertical marquees filling the fullscreen side space.
+   NOTE: edge-track content must be 2 identical groups with NO trailing
+   dash/separator (no "—", "-", "•"). Spacing comes from padding/gap only,
+   otherwise a dash glyph sits at the loop seam (top/bottom ends). */
+.edge-marquee{position:fixed;top:0;bottom:0;width:76px;display:none;overflow:hidden;z-index:1;pointer-events:none;user-select:none;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 48px,#000 calc(100% - 48px),transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 48px,#000 calc(100% - 48px),transparent 100%)}
 .edge-marquee.left{left:0}
 .edge-marquee.right{right:0}
-.edge-track{display:flex;flex-direction:column;align-items:center;width:100%;animation:edge-up 32s linear infinite}
+.edge-track{display:flex;flex-direction:column;align-items:center;width:100%;gap:0;animation:edge-up 32s linear infinite;will-change:transform}
 .edge-marquee.right .edge-track{animation-name:edge-down}
-.edge-track span{writing-mode:vertical-rl;font-weight:800;font-size:42px;letter-spacing:.08em;white-space:nowrap;color:transparent;-webkit-text-stroke:1px #d4d4d4;padding:1.2em 0}
+.edge-track span{writing-mode:vertical-rl;font-weight:800;font-size:42px;letter-spacing:.08em;white-space:nowrap;color:transparent;-webkit-text-stroke:1px #d4d4d4;padding:.6em 0;border:0}
+.edge-track span:empty{display:none}
 @keyframes edge-up{to{transform:translateY(-50%)}}
 @keyframes edge-down{from{transform:translateY(-50%)}to{transform:translateY(0)}}
 @media(min-width:1400px){.edge-marquee{display:block}}
@@ -189,7 +198,7 @@ footer{text-align:center;padding:26px 0 0;overflow:hidden;border-top:1px solid v
   main{padding:112px 20px 20px}
   .nav-inner{padding:12px 20px;min-height:60px}
   .corner{display:none}
-  .os-badge{left:-10px;top:-19px;width:34px;height:34px}
+  .os-badge{left:-18px;top:-27px;width:34px;height:34px}
   .os-badge svg{width:30px;height:30px}
 }
 @media(prefers-reduced-motion:reduce){
